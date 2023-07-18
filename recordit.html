@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Record and Play Voice</title>
+</head>
+<body>
+<h1>Record and Play Voice</h1>
+<input type="button" value="Record" onclick="record()">
+<input type="button" value="Play" onclick="play()">
+<audio id="audio"></audio>
+<script>
+function record() {
+var audio = document.getElementById("audio");
+var recorder = new MediaRecorder(audio.srcObject);
+recorder.start();
+}
+function play() {
+var audio = document.getElementById("audio");
+audio.src = recorder.getBlobUrl();
+audio.play();
+}
+</script>
+</body>
+</html>
