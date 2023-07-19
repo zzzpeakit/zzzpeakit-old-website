@@ -48,14 +48,14 @@
             mediaRecorder.stop();
         }
 
-        function playRecording(blob) {
-            var audioURL = URL.createObjectURL(blob);
+        function playRecording(audioURL) {
             var audio = new Audio(audioURL);
             audio.play();
         }
 
         function deleteRecording(audioURL) {
             localStorage.removeItem('recording_' + audioURL);
+            displayRecordings();
         }
 
         function displayRecordings() {
@@ -64,8 +64,7 @@
             for (var i = 0; i < localStorage.length; i++) {
                 var key = localStorage.key(i);
                 if (key.startsWith('recording_')) {
-                    var blob = localStorage.getItem(key);
-                    var audioURL = URL.createObjectURL(blob);
+                    var audioURL = localStorage.getItem(key);
 
                     var li = document.createElement('li');
                     var audio = document.createElement('audio');
@@ -77,7 +76,7 @@
 
                     playButton.textContent = 'Play';
                     playButton.addEventListener('click', function () {
-                        playRecording(blob);
+                        playRecording(audioURL);
                     });
 
                     deleteButton.textContent = 'Delete';
@@ -96,7 +95,6 @@
 
         recordButton.addEventListener('click', startRecording);
         stopButton.addEventListener('click', stopRecording);
-        playButton.addEventListener('click', playRecording);
 
         mediaRecorder = new MediaRecorder(stream);
         mediaRecorder.addEventListener('dataavailable', function (e) {
@@ -108,7 +106,9 @@
             chunks = [];
 
             var audioURL = URL.createObjectURL(blob);
-            localStorage.setItem('recording_' + audioURL, blob);
+            var timestamp = new Date().getTime();
+
+            localStorage.setItem('recording_' + timestamp, audioURL);
 
             displayRecordings();
 
