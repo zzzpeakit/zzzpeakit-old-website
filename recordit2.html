@@ -71,7 +71,7 @@
     }
 
     function saveRecording() {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
+      const blob = new Blob(chunks, { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       audioElement.src = url;
     }
