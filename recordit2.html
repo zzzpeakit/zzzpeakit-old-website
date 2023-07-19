@@ -1,135 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Voice Recorder</title>
-    <style>
-        button {
-            margin: 10px;
-        }
-    </style>
+  <title>Voice Recorder</title>
+  <style>
+    #controls {
+      margin-bottom: 20px;
+    }
+    #record-btn, #stop-btn, #play-btn {
+      margin-right: 10px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Voice Recorder</h1>
+  <h1>Voice Recorder</h1>
 
-    <button id="recordButton" disabled>Record</button>
-    <button id="stopButton" disabled>Stop</button>
-    <button id="playButton" disabled>Play</button>
+  <div id="controls">
+    <button id="record-btn">Record</button>
+    <button id="stop-btn" disabled>Stop</button>
+    <button id="play-btn" disabled>Play</button>
+  </div>
 
-    <h2>Recordings:</h2>
-    <ul id="recordingsList"></ul>
+  <audio id="audio" controls></audio>
 
-    <script>
-        var recordButton = document.getElementById('recordButton');
-        var stopButton = document.getElementById('stopButton');
-        var playButton = document.getElementById('playButton');
-        var recordingsList = document.getElementById('recordingsList');
+  <script>
+    let mediaRecorder;
+    let chunks = [];
+    let isRecording = false;
 
-        var mediaRecorder;
-        var chunks = [];
-        var stream;
+    const recordButton = document.getElementById('record-btn');
+    const stopButton = document.getElementById('stop-btn');
+    const playButton = document.getElementById('play-btn');
+    const audioElement = document.getElementById('audio');
 
-        function startRecording() {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(function (str) {
-                    stream = str;
-                    mediaRecorder = new MediaRecorder(stream);
-                    mediaRecorder.start();
+    recordButton.addEventListener('click', startRecording);
+    stopButton.addEventListener('click', stopRecording);
+    playButton.addEventListener('click', playRecording);
 
-                    recordButton.disabled = true;
-                    stopButton.disabled = false;
-                    playButton.disabled = true;
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.start();
 
-                    chunks = [];
-                })
-                .catch(function (err) {
-                    console.log('Unable to access the microphone:', err);
-                });
-        }
+          recordButton.disabled = true;
+          stopButton.disabled = false;
+          playButton.disabled = true;
 
-        function stopRecording() {
-            mediaRecorder.stop();
-            stream.getAudioTracks()[0].stop();
-            recordButton.disabled = false;
-            stopButton.disabled = true;
-            playButton.disabled = false;
-        }
+          chunks = [];
 
-        function playRecording(audioURL) {
-            var audio = new Audio(audioURL);
-            audio.play();
-        }
+          mediaRecorder.addEventListener('dataavailable', e => chunks.push(e.data));
+          mediaRecorder.addEventListener('stop', saveRecording);
 
-        function deleteRecording(audioURL) {
-            localStorage.removeItem('recording_' + audioURL);
-            displayRecordings();
-        }
-
-        function displayRecordings() {
-            recordingsList.innerHTML = '';
-
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                if (key.startsWith('recording_')) {
-                    var audioURL = localStorage.getItem(key);
-
-                    var li = document.createElement('li');
-                    var audio = document.createElement('audio');
-                    var playButton = document.createElement('button');
-                    var deleteButton = document.createElement('button');
-
-                    audio.controls = true;
-                    audio.src = audioURL;
-
-                    playButton.textContent = 'Play';
-                    playButton.addEventListener('click', function () {
-                        playRecording(audioURL);
-                    });
-
-                    deleteButton.textContent = 'Delete';
-                    deleteButton.addEventListener('click', function () {
-                        li.remove();
-                        deleteRecording(audioURL);
-                    });
-
-                    li.appendChild(audio);
-                    li.appendChild(playButton);
-                    li.appendChild(deleteButton);
-                    recordingsList.appendChild(li);
-                }
-            }
-        }
-
-        recordButton.addEventListener('click', startRecording);
-        stopButton.addEventListener('click', stopRecording);
-
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.addEventListener('dataavailable', function (e) {
-            chunks.push(e.data);
+          isRecording = true;
+        })
+        .catch(error => {
+          console.error('Error accessing microphone:', error);
         });
+    }
 
-        mediaRecorder.addEventListener('stop', function () {
-            var blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' });
-            chunks = [];
+    function stopRecording() {
+      if (isRecording) {
+        mediaRecorder.stop();
 
-            var audioURL = URL.createObjectURL(blob);
-            var timestamp = new Date().getTime();
+        recordButton.disabled = false;
+        stopButton.disabled = true;
+        playButton.disabled = false;
 
-            localStorage.setItem('recording_' + timestamp, audioURL);
+        isRecording = false;
+      }
+    }
 
-            displayRecordings();
+    function saveRecording() {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      audioElement.src = url;
+    }
 
-            recordButton.disabled = false;
-            stopButton.disabled = true;
-            playButton.disabled = false;
-        });
-
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            recordButton.disabled = false;
-        } else {
-            console.log('getUserMedia is not supported on your browser');
-        }
-
-        displayRecordings();
-    </script>
+    function playRecording() {
+      if (audioElement.src) {
+        audioElement.play();
+      }
+    }
+  </script>
 </body>
 </html>
