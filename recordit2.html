@@ -24,7 +24,7 @@
 
   <script>
     let mediaRecorder;
-    let chunks = [];
+    let recordedChunks = [];
     let isRecording = false;
 
     const recordButton = document.getElementById('record-btn');
@@ -39,18 +39,15 @@
     function startRecording() {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/wav' });
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = handleDataAvailable;
           mediaRecorder.start();
 
           recordButton.disabled = true;
           stopButton.disabled = false;
           playButton.disabled = true;
 
-          chunks = [];
-
-          mediaRecorder.addEventListener('dataavailable', e => chunks.push(e.data));
-          mediaRecorder.addEventListener('stop', saveRecording);
-
+          recordedChunks = [];
           isRecording = true;
         })
         .catch(error => {
@@ -70,16 +67,18 @@
       }
     }
 
-    function saveRecording() {
-      const blob = new Blob(chunks, { type: 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      audioElement.src = url;
+    function handleDataAvailable(event) {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
     }
 
     function playRecording() {
-      if (audioElement.src) {
-        audioElement.play();
-      }
+      if (recordedChunks.length === 0) return;
+
+      const blob = new Blob(recordedChunks, { type: 'audio/ogg; codecs=opus' });
+      const url = URL.createObjectURL(blob);
+      audioElement.src = url;
     }
   </script>
 </body>
