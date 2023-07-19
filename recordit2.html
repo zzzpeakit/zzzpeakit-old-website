@@ -39,7 +39,7 @@
     function startRecording() {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/wav' });
           mediaRecorder.start();
 
           recordButton.disabled = true;
