@@ -46,46 +46,51 @@
 
         function stopRecording() {
             mediaRecorder.stop();
-            mediaRecorder.ondataavailable = function (e) {
-                chunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = function () {
-                var blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' });
-                chunks = [];
-
-                var audioURL = URL.createObjectURL(blob);
-
-                var li = document.createElement('li');
-                var audio = document.createElement('audio');
-                var deleteButton = document.createElement('button');
-
-                audio.controls = true;
-                audio.src = audioURL;
-
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', function () {
-                    li.remove();
-                    localStorage.removeItem('recording_' + audioURL);
-                });
-
-                li.appendChild(audio);
-                li.appendChild(deleteButton);
-                recordingsList.appendChild(li);
-
-                localStorage.setItem('recording_' + audioURL, blob);
-                
-                recordButton.disabled = false;
-                stopButton.disabled = true;
-                playButton.disabled = false;
-            };
         }
 
-        function playRecording() {
-            var recordings = document.getElementsByTagName('audio');
-            if (recordings.length > 0) {
-                var audio = recordings[recordings.length - 1];
-                audio.play();
+        function playRecording(blob) {
+            var audioURL = URL.createObjectURL(blob);
+            var audio = new Audio(audioURL);
+            audio.play();
+        }
+
+        function deleteRecording(audioURL) {
+            localStorage.removeItem('recording_' + audioURL);
+        }
+
+        function displayRecordings() {
+            recordingsList.innerHTML = '';
+
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key.startsWith('recording_')) {
+                    var blob = localStorage.getItem(key);
+                    var audioURL = URL.createObjectURL(blob);
+
+                    var li = document.createElement('li');
+                    var audio = document.createElement('audio');
+                    var playButton = document.createElement('button');
+                    var deleteButton = document.createElement('button');
+
+                    audio.controls = true;
+                    audio.src = audioURL;
+
+                    playButton.textContent = 'Play';
+                    playButton.addEventListener('click', function () {
+                        playRecording(blob);
+                    });
+
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', function () {
+                        li.remove();
+                        deleteRecording(audioURL);
+                    });
+
+                    li.appendChild(audio);
+                    li.appendChild(playButton);
+                    li.appendChild(deleteButton);
+                    recordingsList.appendChild(li);
+                }
             }
         }
 
@@ -93,37 +98,32 @@
         stopButton.addEventListener('click', stopRecording);
         playButton.addEventListener('click', playRecording);
 
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.addEventListener('dataavailable', function (e) {
+            chunks.push(e.data);
+        });
+
+        mediaRecorder.addEventListener('stop', function () {
+            var blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' });
+            chunks = [];
+
+            var audioURL = URL.createObjectURL(blob);
+            localStorage.setItem('recording_' + audioURL, blob);
+
+            displayRecordings();
+
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+            playButton.disabled = false;
+        });
+
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             recordButton.disabled = false;
         } else {
             console.log('getUserMedia is not supported on your browser');
         }
 
-        // Load existing recordings from local storage
-        for (var i = 0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (key.startsWith('recording_')) {
-                var blob = localStorage.getItem(key);
-                var audioURL = URL.createObjectURL(blob);
-
-                var li = document.createElement('li');
-                var audio = document.createElement('audio');
-                var deleteButton = document.createElement('button');
-
-                audio.controls = true;
-                audio.src = audioURL;
-
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', function () {
-                    li.remove();
-                    localStorage.removeItem(key);
-                });
-
-                li.appendChild(audio);
-                li.appendChild(deleteButton);
-                recordingsList.appendChild(li);
-            }
-        }
+        displayRecordings();
     </script>
 </body>
 </html>
