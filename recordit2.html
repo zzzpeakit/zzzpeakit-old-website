@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice Recorder</title>
+    <style>
+        button {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Voice Recorder</h1>
+
+    <button id="recordButton" disabled>Record</button>
+    <button id="stopButton" disabled>Stop</button>
+    <button id="playButton" disabled>Play</button>
+
+    <h2>Recordings:</h2>
+    <ul id="recordingsList"></ul>
+
+    <script>
+        var recordButton = document.getElementById('recordButton');
+        var stopButton = document.getElementById('stopButton');
+        var playButton = document.getElementById('playButton');
+        var recordingsList = document.getElementById('recordingsList');
+
+        var mediaRecorder;
+        var chunks = [];
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function (stream) {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+
+                    recordButton.disabled = true;
+                    stopButton.disabled = false;
+                    playButton.disabled = true;
+
+                    chunks = [];
+                })
+                .catch(function (err) {
+                    console.log('Unable to access the microphone:', err);
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            mediaRecorder.ondataavailable = function (e) {
+                chunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = function () {
+                var blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' });
+                chunks = [];
+
+                var audioURL = URL.createObjectURL(blob);
+
+                var li = document.createElement('li');
+                var audio = document.createElement('audio');
+                var deleteButton = document.createElement('button');
+
+                audio.controls = true;
+                audio.src = audioURL;
+
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', function () {
+                    li.remove();
+                    localStorage.removeItem('recording_' + audioURL);
+                });
+
+                li.appendChild(audio);
+                li.appendChild(deleteButton);
+                recordingsList.appendChild(li);
+
+                localStorage.setItem('recording_' + audioURL, blob);
+                
+                recordButton.disabled = false;
+                stopButton.disabled = true;
+                playButton.disabled = false;
+            };
+        }
+
+        function playRecording() {
+            var recordings = document.getElementsByTagName('audio');
+            if (recordings.length > 0) {
+                var audio = recordings[recordings.length - 1];
+                audio.play();
+            }
+        }
+
+        recordButton.addEventListener('click', startRecording);
+        stopButton.addEventListener('click', stopRecording);
+        playButton.addEventListener('click', playRecording);
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            recordButton.disabled = false;
+        } else {
+            console.log('getUserMedia is not supported on your browser');
+        }
+
+        // Load existing recordings from local storage
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key.startsWith('recording_')) {
+                var blob = localStorage.getItem(key);
+                var audioURL = URL.createObjectURL(blob);
+
+                var li = document.createElement('li');
+                var audio = document.createElement('audio');
+                var deleteButton = document.createElement('button');
+
+                audio.controls = true;
+                audio.src = audioURL;
+
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', function () {
+                    li.remove();
+                    localStorage.removeItem(key);
+                });
+
+                li.appendChild(audio);
+                li.appendChild(deleteButton);
+                recordingsList.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>
