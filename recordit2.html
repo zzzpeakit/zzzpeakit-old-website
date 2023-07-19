@@ -26,10 +26,12 @@
 
         var mediaRecorder;
         var chunks = [];
+        var stream;
 
         function startRecording() {
             navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(function (stream) {
+                .then(function (str) {
+                    stream = str;
                     mediaRecorder = new MediaRecorder(stream);
                     mediaRecorder.start();
 
@@ -46,6 +48,10 @@
 
         function stopRecording() {
             mediaRecorder.stop();
+            stream.getAudioTracks()[0].stop();
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+            playButton.disabled = false;
         }
 
         function playRecording(audioURL) {
